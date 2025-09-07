@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SharpGaze - Premium Eyewear</title>
+    <title>SharpGaze - Premium Cloth Brand</title>
     <style>
         * {
             margin: 0;
@@ -137,21 +137,6 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
 
-        /* Loading Spinner */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
         /* Products Section */
         .products-section {
             padding: 80px 0;
@@ -215,12 +200,6 @@
             margin-bottom: 1rem;
         }
 
-        .product-stock {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            margin-bottom: 1rem;
-        }
-
         .add-to-cart {
             width: 100%;
             background: linear-gradient(135deg, #3498db, #2980b9);
@@ -231,18 +210,11 @@
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s, transform 0.2s;
-            position: relative;
         }
 
         .add-to-cart:hover {
             background: linear-gradient(135deg, #2980b9, #1f4e79);
             transform: translateY(-2px);
-        }
-
-        .add-to-cart:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
         }
 
         /* Cart Modal */
@@ -318,23 +290,6 @@
             background: linear-gradient(135deg, #2ecc71, #27ae60);
         }
 
-        /* API Status */
-        .api-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #27ae60;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            z-index: 1000;
-        }
-
-        .api-status.offline {
-            background: #e74c3c;
-        }
-
         /* Animations */
         @keyframes fadeInUp {
             from {
@@ -395,29 +350,6 @@
                 grid-template-columns: 1fr;
             }
         }
-
-        .notification {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background: #27ae60;
-            color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            z-index: 3000;
-            animation: slideIn 0.5s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
     </style>
 </head>
 <body>
@@ -440,8 +372,8 @@
     <main>
         <section class="hero" id="home">
             <div class="container">
-                <h1>Discover Perfect Vision</h1>
-                <p>Premium eyewear designed for the modern lifestyle</p>
+                <h1>Discover New clothes</h1>
+                <p>Premium cloth designed for the modern lifestyle</p>
                 <a href="#products" class="cta-button">Shop Now</a>
             </div>
         </section>
@@ -450,10 +382,7 @@
             <div class="container">
                 <h2 class="section-title">Featured Products</h2>
                 <div class="products-grid" id="productsGrid">
-                    <div style="text-align: center; padding: 2rem;">
-                        <div class="loading"></div>
-                        <p>Loading products...</p>
-                    </div>
+                    <!-- Products will be loaded dynamically -->
                 </div>
             </div>
         </section>
@@ -470,15 +399,12 @@
         </div>
     </div>
 
-    <!-- API Status -->
-    <div class="api-status" id="apiStatus">API Connected</div>
-
     <footer>
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
                     <h3>SharpGaze</h3>
-                    <p>Premium eyewear for modern living</p>
+                    <p>Premium cloth for modern living</p>
                 </div>
                 <div class="footer-section">
                     <h3>Quick Links</h3>
@@ -500,73 +426,20 @@
     </footer>
 
     <script>
-        // Configuration
-        const API_BASE = '/api'; // Vercel API routes
-        let products = [];
+        // Sample product data (in real app, this would come from backend API)
+        const products = [
+            { id: 1, name: "Joggers", price: 2999, image: "👖" },
+            { id: 2, name: "Polo Gym Shirts", price: 3499, image: "👔" },
+            { id: 3, name: "Hoodies & Sweatshirts", price: 4199, image: "🧥" },
+            { id: 4, name: "T-Shirts", price: 3799, image: "👕" },
+            { id: 5, name: "Gym Shorts", price: 2499, image: "🩳" },
+            { id: 6, name: "Sports Bras", price: 5999, image: "🎽" }
+        ];
+
         let cart = [];
-        let sessionId = localStorage.getItem('sessionId') || generateSessionId();
-        
-        function generateSessionId() {
-            const id = 'session_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('sessionId', id);
-            return id;
-        }
 
-        // API Helper Functions
-        async function apiCall(endpoint, options = {}) {
-            try {
-                const response = await fetch(`${API_BASE}${endpoint}`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Session-ID': sessionId,
-                        ...options.headers
-                    },
-                    ...options
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                updateApiStatus(true);
-                return data;
-            } catch (error) {
-                console.error('API call failed:', error);
-                updateApiStatus(false);
-                throw error;
-            }
-        }
-
-        function updateApiStatus(isOnline) {
-            const statusEl = document.getElementById('apiStatus');
-            if (isOnline) {
-                statusEl.textContent = 'API Connected';
-                statusEl.classList.remove('offline');
-            } else {
-                statusEl.textContent = 'API Offline';
-                statusEl.classList.add('offline');
-            }
-        }
-
-        // Load products from API
-        async function loadProducts() {
-            try {
-                const response = await apiCall('/products');
-                if (response.success && response.products) {
-                    products = response.products;
-                    renderProducts();
-                } else {
-                    throw new Error('Invalid response format');
-                }
-            } catch (error) {
-                console.error('Failed to load products:', error);
-                showError('Failed to load products. Please check your connection.');
-                renderOfflineProducts();
-            }
-        }
-
-        function renderProducts() {
+        // Load products
+        function loadProducts() {
             const grid = document.getElementById('productsGrid');
             grid.innerHTML = products.map(product => `
                 <div class="product-card" onclick="viewProduct(${product.id})">
@@ -574,76 +447,30 @@
                     <div class="product-info">
                         <div class="product-name">${product.name}</div>
                         <div class="product-price">₹${product.price.toLocaleString()}</div>
-                        <div class="product-stock">Stock: ${product.stock}</div>
-                        <button class="add-to-cart" 
-                                onclick="event.stopPropagation(); addToCart(${product.id})"
-                                ${product.stock === 0 ? 'disabled' : ''}>
-                            ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                        <button class="add-to-cart" onclick="event.stopPropagation(); addToCart(${product.id})">
+                            Add to Cart
                         </button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function renderOfflineProducts() {
-            // Fallback products if API is unavailable
-            const offlineProducts = [
-                { id: 1, name: "Classic Aviators", price: 2999, stock: 50, image: "🕶️" },
-                { id: 2, name: "Modern Frames", price: 3499, stock: 30, image: "👓" },
-                { id: 3, name: "Sports Sunglasses", price: 4199, stock: 25, image: "🥽" }
-            ];
-            
-            products = offlineProducts;
-            renderProducts();
-        }
-
         // Add to cart
-        async function addToCart(productId) {
-            try {
-                const product = products.find(p => p.id === productId);
-                if (!product) {
-                    showError('Product not found');
-                    return;
-                }
-
-                if (product.stock <= 0) {
-                    showError('Product is out of stock');
-                    return;
-                }
-
-                const existingItem = cart.find(item => item.id === productId);
-                
-                if (existingItem) {
-                    existingItem.quantity += 1;
-                } else {
-                    cart.push({ ...product, quantity: 1 });
-                }
-                
-                // Update cart on server
-                await syncCart();
-                
-                updateCartCount();
-                showNotification(`${product.name} added to cart!`);
-                
-            } catch (error) {
-                console.error('Failed to add to cart:', error);
-                showError('Failed to add item to cart');
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
             }
-        }
-
-        // Sync cart with server
-        async function syncCart() {
-            try {
-                await apiCall('/cart', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        cart: cart,
-                        session_id: sessionId
-                    })
-                });
-            } catch (error) {
-                console.error('Failed to sync cart:', error);
-            }
+            
+            updateCartCount();
+            showNotification(`${product.name} added to cart!`);
+            
+            // Send to backend
+            sendCartUpdate();
         }
 
         // Update cart count
@@ -657,26 +484,17 @@
             const modal = document.getElementById('cartModal');
             const cartItems = document.getElementById('cartItems');
             
-            if (cart.length === 0) {
-                cartItems.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 2rem;">Your cart is empty</p>';
-            } else {
-                cartItems.innerHTML = cart.map(item => `
-                    <div class="cart-item">
-                        <div>
-                            <strong>${item.name}</strong><br>
-                            ₹${item.price.toLocaleString()} x ${item.quantity}
-                        </div>
-                        <div>
-                            <button onclick="updateQuantity(${item.id}, -1)" 
-                                    style="background: #f39c12; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 3px; cursor: pointer; margin-right: 0.5rem;">-</button>
-                            <button onclick="updateQuantity(${item.id}, 1)" 
-                                    style="background: #27ae60; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 3px; cursor: pointer; margin-right: 0.5rem;">+</button>
-                            <button onclick="removeFromCart(${item.id})" 
-                                    style="background: #e74c3c; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 3px; cursor: pointer;">Remove</button>
-                        </div>
+            cartItems.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        ₹${item.price.toLocaleString()} x ${item.quantity}
                     </div>
-                `).join('');
-            }
+                    <div>
+                        <button onclick="removeFromCart(${item.id})" style="background: #e74c3c; color: white; border: none; padding: 0.5rem; border-radius: 5px; cursor: pointer;">Remove</button>
+                    </div>
+                </div>
+            `).join('');
             
             const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             document.getElementById('cartTotal').textContent = `Total: ₹${total.toLocaleString()}`;
@@ -689,107 +507,89 @@
             document.getElementById('cartModal').style.display = 'none';
         }
 
-        // Update quantity
-        async function updateQuantity(productId, change) {
-            const item = cart.find(item => item.id === productId);
-            if (item) {
-                item.quantity += change;
-                if (item.quantity <= 0) {
-                    removeFromCart(productId);
-                } else {
-                    await syncCart();
-                    updateCartCount();
-                    openCart(); // Refresh cart display
-                }
-            }
-        }
-
         // Remove from cart
-        async function removeFromCart(productId) {
+        function removeFromCart(productId) {
             cart = cart.filter(item => item.id !== productId);
-            await syncCart();
             updateCartCount();
             openCart(); // Refresh cart display
+            sendCartUpdate();
         }
 
         // Checkout process
-        async function checkout() {
+        function checkout() {
             if (cart.length === 0) {
-                showError('Your cart is empty!');
+                alert('Your cart is empty!');
                 return;
             }
             
-            try {
-                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                
-                const response = await apiCall('/checkout', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        items: cart,
-                        total: total,
-                        customer: {
-                            name: 'Customer', // In real app, get from form
-                            email: 'customer@example.com',
-                            phone: '+91 12345 67890'
-                        }
-                    })
-                });
-                
-                if (response.success) {
-                    showNotification(`Order placed successfully! Order ID: ${response.order_id}`, 'success');
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            // Send order to backend
+            fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: cart,
+                    total: total
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Order placed successfully! Order ID: ${data.orderId}`);
                     cart = [];
-                    await syncCart();
                     updateCartCount();
                     closeCart();
-                    
-                    // Refresh products to update stock
-                    await loadProducts();
                 } else {
-                    showError(response.error || 'Order failed. Please try again.');
+                    alert('Order failed. Please try again.');
                 }
-            } catch (error) {
-                console.error('Checkout error:', error);
-                showError('Network error. Please try again.');
-            }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            });
+        }
+
+        // Send cart updates to backend
+        function sendCartUpdate() {
+            fetch('/api/cart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ cart: cart })
+            })
+            .catch(error => console.error('Cart sync error:', error));
         }
 
         // View product details
         function viewProduct(productId) {
             const product = products.find(p => p.id === productId);
-            if (product) {
-                alert(`Product: ${product.name}\nPrice: ₹${product.price.toLocaleString()}\nStock: ${product.stock}\n\nClick "Add to Cart" to purchase.`);
-            }
+            alert(`Product: ${product.name}\nPrice: ₹${product.price.toLocaleString()}\n\nClick "Add to Cart" to purchase.`);
         }
 
         // Show notification
-        function showNotification(message, type = 'success') {
+        function showNotification(message) {
             const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.style.background = type === 'success' ? '#27ae60' : '#e74c3c';
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: #27ae60;
+                color: white;
+                padding: 1rem;
+                border-radius: 10px;
+                z-index: 3000;
+                animation: slideIn 0.5s ease-out;
+            `;
             notification.textContent = message;
             document.body.appendChild(notification);
             
             setTimeout(() => {
                 notification.remove();
-            }, 4000);
-        }
-
-        // Show error
-        function showError(message) {
-            showNotification(message, 'error');
-        }
-
-        // Load cart from server
-        async function loadCart() {
-            try {
-                const response = await apiCall(`/cart/${sessionId}`);
-                if (response.success && response.cart) {
-                    cart = response.cart;
-                    updateCartCount();
-                }
-            } catch (error) {
-                console.error('Failed to load cart:', error);
-            }
+            }, 3000);
         }
 
         // Smooth scrolling
@@ -805,6 +605,12 @@
             });
         });
 
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
+            updateCartCount();
+        });
+
         // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('cartModal');
@@ -812,39 +618,6 @@
                 closeCart();
             }
         }
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('Initializing SharpGaze app...');
-            updateApiStatus(false); // Start as offline
-            
-            try {
-                // Test API connection
-                await apiCall('/health');
-                console.log('API connected successfully');
-                
-                // Load data
-                await Promise.all([
-                    loadProducts(),
-                    loadCart()
-                ]);
-                
-                console.log('App initialized successfully');
-            } catch (error) {
-                console.error('App initialization failed:', error);
-                renderOfflineProducts(); // Show offline products
-                showError('Running in offline mode. Some features may be limited.');
-            }
-        });
-
-        // Periodic health check
-        setInterval(async () => {
-            try {
-                await apiCall('/health');
-            } catch (error) {
-                // API is offline
-            }
-        }, 30000); // Check every 30 seconds
     </script>
 </body>
 </html>
