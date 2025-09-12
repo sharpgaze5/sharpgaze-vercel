@@ -40,6 +40,69 @@ def home():
             'health': '/api/health'
         }
     })
+    # --- Add at the top with other in-memory DBs ---
+users_db = {}  # {email: {"name": str, "password": str}}
+
+# ---------------- AUTH ENDPOINTS ----------------
+
+# --- In-memory user DB ---
+users_db = {}  # {email: {"name": str, "password": str, "mobile": str}}
+
+# ---------------- AUTH ENDPOINTS ----------------
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """Register new customer"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+    
+    email = data.get('email')
+    password = data.get('password')
+    name = data.get('name')
+    mobile = data.get('mobile')
+
+    if not email or not password or not name or not mobile:
+        return jsonify({'success': False, 'error': 'All fields are required'}), 400
+    
+    if email in users_db:
+        return jsonify({'success': False, 'error': 'User already exists'}), 400
+
+    users_db[email] = {
+        "name": name,
+        "password": password,   # ⚠️ plaintext for demo, hash in real use
+        "mobile": mobile
+    }
+    return jsonify({'success': True, 'message': 'User registered successfully'})
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Login customer"""
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    user = users_db.get(email)
+    if not user or user['password'] != password:
+        return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
+    session_id = str(uuid.uuid4())
+    return jsonify({'success': True, 'message': 'Login successful', 'session_id': session_id})
+
+
+# ---------------- SEARCH ENDPOINT ----------------
+
+@app.route('/api/search', methods=['GET'])
+def search_products():
+    """Search products by name (case-insensitive)"""
+    query = request.args.get('q', '').lower()
+    if not query:
+        return jsonify({'success': False, 'error': 'Query is required'}), 400
+    
+    results = [p for p in products_db if query in p['name'].lower()]
+    return jsonify({'success': True, 'results': results, 'count': len(results)})
+
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
